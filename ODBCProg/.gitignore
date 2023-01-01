@@ -495,4 +495,5 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 .clangd
+scratchpad/
 build/
