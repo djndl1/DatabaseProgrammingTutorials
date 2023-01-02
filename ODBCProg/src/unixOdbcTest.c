@@ -1,6 +1,7 @@
 #include <sql.h>
 #include <sqlext.h>
 #include <sqltypes.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -112,15 +113,44 @@ static SQLRETURN display_oracle_types(SQLHDBC connection)
 			goto FreeStatement;
 		}
 
-        char *type_name = get_sql_type_name(result_buffer.data_type);
+		char *type_name = get_sql_type_name(result_buffer.data_type);
 
-		printf("%s\t\t%s\t\t%d\t\t%d\t\t%d\t\t%d\n", result_buffer.type_name, type_name,
-			   result_buffer.column_size, result_buffer.minimum_scale, result_buffer.maximum_scale,
-			   result_buffer.sql_data_type);
+		printf("%s\t\t%s\t\t%d\t\t%d\t\t%d\t\t%d\n", result_buffer.type_name, type_name, result_buffer.column_size,
+			   result_buffer.minimum_scale, result_buffer.maximum_scale, result_buffer.sql_data_type);
 	}
 
 FreeStatement:
 	SQLFreeHandle(SQL_HANDLE_STMT, select_stmt);
+	return ret;
+}
+
+static SQLRETURN insert_user(SQLHDBC connection)
+{
+	SQLRETURN ret = SQL_SUCCESS;
+	const char *insert_sql = "INSERT INTO \"tkeyuser\" (\"dtname\") VALUES (?)";
+	const char *new_user = "NEW_USER";
+
+	SQLHSTMT insert_stmt;
+	SQLRETURN alloc_result = SQLAllocHandle(SQL_HANDLE_STMT, connection, &insert_stmt);
+	if (!SQL_SUCCEEDED(alloc_result)) {
+		return alloc_result;
+	}
+    SQLRETURN prepare_ret = SQLPrepare(insert_stmt, (SQLCHAR*)insert_sql, (SQLINTEGER)SQL_NTS);
+	if (!SQL_SUCCEEDED(prepare_ret)) {
+		ret = prepare_ret;
+        goto FreeStatement;
+	}
+	SQLBindParameter(insert_stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 40, 0, (SQLPOINTER)new_user, strlen(new_user) + 1,
+					 NULL);
+
+    SQLRETURN exec_ret = SQLExecute(insert_stmt);
+	if (!SQL_SUCCEEDED(exec_ret)) {
+		ret = exec_ret;
+        goto FreeStatement;
+	}
+
+FreeStatement:
+	SQLFreeHandle(SQL_HANDLE_STMT, insert_stmt);
 	return ret;
 }
 
@@ -232,6 +262,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Error print_tkeyuser %ld\n", result);
 		goto DropConnection;
 	}
+    insert_user(connection_handle);
+	result = print_tkeyuser(connection_handle);
 
 	display_oracle_types(connection_handle);
 
