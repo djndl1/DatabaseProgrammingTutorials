@@ -221,6 +221,21 @@ FreeStatement:
 	return ret;
 }
 
+SQLCHAR *get_odbc_error(SQLSMALLINT handleType, SQLHANDLE handle, SQLCHAR **msg)
+{
+	SQLCHAR *err_status = malloc(SQL_DIAG_MESSAGE_TEXT + 1);
+	if (msg != NULL) {
+		*msg = malloc(SQL_MAX_MESSAGE_LENGTH + 1);
+	}
+	SQLCHAR *msg_buffer = msg != NULL ? *msg : NULL;
+	
+	SQLINTEGER native_error = 0;
+	SQLSMALLINT msg_len = 0;
+	SQLGetDiagRec(handleType, handle, 1, err_status, &native_error, msg_buffer, SQL_MAX_MESSAGE_LENGTH + 1, &msg_len);
+	
+	return err_status;
+}
+
 int main(int argc, char *argv[])
 {
 	long result; // result of functions
@@ -248,10 +263,13 @@ int main(int argc, char *argv[])
 
 	SQLSetConnectAttr(connection_handle, SQL_LOGIN_TIMEOUT, (SQLPOINTER)5, 0);
 	// 3. Connect to the datasource "web"
-	result = SQLConnect(connection_handle, (SQLCHAR *)"sqlalchemy_test", SQL_NTS, (SQLCHAR *)"sqlalchemy", SQL_NTS,
+	result = SQLConnect(connection_handle, (SQLCHAR *)"sqlalchemy", SQL_NTS, (SQLCHAR *)"sqlalchemy", SQL_NTS,
 						(SQLCHAR *)"sqlalchemy", SQL_NTS);
 	if ((result != SQL_SUCCESS) && (result != SQL_SUCCESS_WITH_INFO)) {
-		fprintf(stderr, "Error SQLConnect %ld\n", result);
+		SQLCHAR* err_status = get_odbc_error(SQL_HANDLE_DBC, connection_handle, NULL);
+		fprintf(stderr, "Error SQLConnect %s\n", err_status);
+		free(err_status);
+		err_status = NULL;
 		goto FreeEnvironmentHandle;
 	}
 
