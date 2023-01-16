@@ -30,7 +30,7 @@ namespace ADO.NETProg
         internal class TKeyUser
         {
             public long Id { get; set; }
-            public string Name { get; set; }
+            public string? Name { get; set; }
 
             public decimal? MaxSize { get; set; }
         }
@@ -86,6 +86,30 @@ namespace ADO.NETProg
             int i = cmd.ExecuteNonQuery();
 
             Assert.That(i, Is.EqualTo(1));
+        }
+        
+        [Test]
+        public void ParameterizedQuery()
+        {
+            using var connection = new OdbcConnection(TestEnvironment.OracleOdbcConnectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+            // named parameters are not supported
+            cmd.CommandText = "SELECT * FROM \"tkeyuser\" WHERE \"iduser\" = ?";
+            cmd.Parameters.AddWithValue(":p1", 1);
+            
+            using var reader = cmd.ExecuteReader();
+            reader.Read();
+            
+            var entity = new TKeyUser();
+            entity.Id = (long)reader.GetDecimal("iduser");
+            entity.Name = reader.GetString("dtName");
+            entity.MaxSize = reader.IsDBNull("dtmaxSize") ? null : reader.GetDecimal("dtmaxSize");
+            
+            Assert.That(entity.Id, Is.EqualTo(1));
+            Assert.That(entity.Name, Is.EqualTo("Christa"));
+            Assert.That(entity.MaxSize, Is.EqualTo(10000));
         }
 
         [Test]
