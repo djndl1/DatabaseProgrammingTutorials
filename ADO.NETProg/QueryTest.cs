@@ -87,7 +87,7 @@ namespace ADO.NETProg
 
             Assert.That(i, Is.EqualTo(1));
         }
-        
+
         [Test]
         public void ParameterizedQuery()
         {
@@ -98,15 +98,15 @@ namespace ADO.NETProg
             // named parameters are not supported
             cmd.CommandText = "SELECT * FROM \"tkeyuser\" WHERE \"iduser\" = ?";
             cmd.Parameters.AddWithValue(":p1", 1);
-            
+
             using var reader = cmd.ExecuteReader();
             reader.Read();
-            
+
             var entity = new TKeyUser();
             entity.Id = (long)reader.GetDecimal("iduser");
             entity.Name = reader.GetString("dtName");
             entity.MaxSize = reader.IsDBNull("dtmaxSize") ? null : reader.GetDecimal("dtmaxSize");
-            
+
             Assert.That(entity.Id, Is.EqualTo(1));
             Assert.That(entity.Name, Is.EqualTo("Christa"));
             Assert.That(entity.MaxSize, Is.EqualTo(10000));
@@ -134,7 +134,7 @@ namespace ADO.NETProg
             TestContext.Progress.WriteLine(one);
             Assert.That(one, Is.EqualTo(100));
         }
-        
+
         [Test]
         public void DataAdapter_RetrieveData()
         {
@@ -146,18 +146,18 @@ namespace ADO.NETProg
             cmd.CommandText = "SELECT * FROM \"tkeyuser\" WHERE \"iduser\" = ? OR \"dtname\" = ?";
             cmd.Parameters.AddWithValue(":p1", 1);
             cmd.Parameters.AddWithValue(":p2", "NEW_USER");
-            
+
             using var adapter = new OdbcDataAdapter(cmd);
             var table = new DataTable("keyuser");
             adapter.Fill(table);
-            
+
             Assert.That(table.AsEnumerable().Select(r => r.Field<string>("dtname"))
                 .All(s => s == "NEW_USER" || s == "Christa"),
                 Is.True);
-            
+
             ConsoleTableBuilder.From(table).ExportAndWriteLine();
         }
-        
+
         [Test]
         public void DataAdapter_CommandBuilder()
         {
@@ -167,16 +167,16 @@ namespace ADO.NETProg
             using var builder = new OracleCommandBuilder(adapter);
 
             var insertCmd = connection.CreateCommand();
-            insertCmd.CommandText = "INSERT INTO TKEYUSER (DT_NAME, DT_MAX_SIZE) VALUES (:p1, :p2) RETURNING ID_USER INTO :p3"; 
+            insertCmd.CommandText = "INSERT INTO TKEYUSER (DT_NAME, DT_MAX_SIZE) VALUES (:p1, :p2) RETURNING ID_USER INTO :p3";
             insertCmd.Parameters.Add(":p1", OracleDbType.Varchar2, 40, "DT_NAME");
             insertCmd.Parameters.Add(":p2", OracleDbType.Decimal, 38, "DT_MAX_SIZE");
-            //The application can specify which type to return for an output parameter 
-            // by setting the DbType property of the output parameter (.NET type) 
-            // or the OracleDbType property (ODP.NET type) of the OracleParameter object. 
-            // if the output parameter is set as a DbType.String type by setting the DbType property, 
-            // the output data is returned as a .NET String type. 
-            // if the parameter is set as an OracleDbType.Char type by setting the OracleDbType property, 
-            // the output data is returned as an OracleString type. 
+            //The application can specify which type to return for an output parameter
+            // by setting the DbType property of the output parameter (.NET type)
+            // or the OracleDbType property (ODP.NET type) of the OracleParameter object.
+            // if the output parameter is set as a DbType.String type by setting the DbType property,
+            // the output data is returned as a .NET String type.
+            // if the parameter is set as an OracleDbType.Char type by setting the OracleDbType property,
+            // the output data is returned as an OracleString type.
             insertCmd.Parameters.Add(new OracleParameter()
             {
                 ParameterName = ":p3",
@@ -188,53 +188,53 @@ namespace ADO.NETProg
 
             var table = new DataTable("TKEYUSER");
             adapter.Fill(table);
-            
+
             Assert.That(table.PrimaryKey.Length, Is.EqualTo(0));
-            
+
             table.PrimaryKey = new DataColumn[] { table.Columns["ID_USER"] };
-            
+
             var christa = table.Rows.Find(1);
             christa!["DT_MAX_SIZE"] = 20000;
 
             adapter.Update(table);
             christa!["DT_MAX_SIZE"] = 10000;
             adapter.Update(table);
-            
+
             table.AsEnumerable().Where(r => r.Field<string?>("DT_NAME") == "NEW_USER")
                 .Select(r => { r.Delete(); return 0; }).ToList();
-            
-            Enumerable.Range(1, 5).Select(i => 
+
+            Enumerable.Range(1, 5).Select(i =>
             {
                 var row = table.NewRow();
                 row["ID_USER"] = -i;
                 row["DT_NAME"] = "NEW_USER";
                 table.Rows.Add(row);
-                
+
                 return 0;
             }).ToList();
-            
+
             adapter.Update(table);
-            
+
             //Assert.That(table.AsEnumerable().Where(r => r.Field<string?>("DT_NAME") == "NEW_USER")
             //        .All(r => r.Field<decimal>("ID_USER") > 0), Is.True);
-            
+
             ConsoleTableBuilder.From(table).ExportAndWriteLine();
         }
-        
+
         [Test]
         public void DataAdapter_UpdateData()
         {
             using var cmd = new OdbcCommand();
             cmd.CommandText = "SELECT * FROM \"tkeyuser\"";
             using var adapter = new OdbcDataAdapter(cmd);
-            
+
             var insertCmd = new OdbcCommand();
-            insertCmd.CommandText = "INSERT INTO \"tkeyuser\" (\"dtname\", \"dtmaxSize\") VALUES (?, ?) RETURNING \"iduser\" INTO ?"; 
+            insertCmd.CommandText = "INSERT INTO \"tkeyuser\" (\"dtname\", \"dtmaxSize\") VALUES (?, ?) RETURNING \"iduser\" INTO ?";
             insertCmd.Parameters.Add(":p1", OdbcType.VarChar, 40, "dtname");
             insertCmd.Parameters.Add(":p2", OdbcType.Decimal, 38, "dtmaxSize");
             insertCmd.Parameters.Add(":p3", OdbcType.Decimal, 38, "iduser").Direction = ParameterDirection.Output;
             adapter.InsertCommand = insertCmd;
-            
+
             var updateCmd = new OdbcCommand();
             updateCmd.CommandText = "UPDATE \"tkeyuser\" SET \"dtname\" = ?, \"dtmaxSize\" = ? WHERE \"iduser\" = ?";
             updateCmd.Parameters.Add(":p1", OdbcType.VarChar, 40, "dtname");
@@ -247,11 +247,11 @@ namespace ADO.NETProg
             deleteCmd.Parameters.Add(":p1", OdbcType.Decimal, 38, "iduser").SourceVersion = DataRowVersion.Original;
             adapter.DeleteCommand = deleteCmd;
 
-            
+
             using var connection = new OdbcConnection(TestEnvironment.OracleOdbcConnectionString);
             connection.Open();
             using var transaction = connection.BeginTransaction();
-            
+
             adapter.SelectCommand!.Connection = connection;
             adapter.SelectCommand!.Transaction = transaction;
 
@@ -263,40 +263,40 @@ namespace ADO.NETProg
 
             adapter.DeleteCommand!.Connection = connection;
             adapter.DeleteCommand!.Transaction = transaction;
-            
+
             var table = new DataTable("keyuser");
             adapter.Fill(table);
-            
+
             Assert.That(table.PrimaryKey.Length, Is.EqualTo(0));
-            
+
             table.PrimaryKey = new DataColumn[] { table.Columns["iduser"] };
-            
+
             var christa = table.Rows.Find(1);
             christa!["dtmaxSize"] = 20000;
 
             adapter.Update(table);
             christa!["dtmaxSize"] = 10000;
             adapter.Update(table);
-            
+
             table.AsEnumerable().Where(r => r.Field<string?>("dtname") == "NEW_USER")
                 .Select(r => { r.Delete(); return 0; }).ToList();
-            
-            Enumerable.Range(1, 20).Select(i => 
+
+            Enumerable.Range(1, 20).Select(i =>
             {
                 var row = table.NewRow();
                 row["iduser"] = -i;
                 row["dtname"] = "NEW_USER";
                 table.Rows.Add(row);
-                
+
                 return 0;
             }).ToList();
-            
+
             adapter.Update(table);
             transaction.Commit();
-            
+
             Assert.That(table.AsEnumerable().Where(r => r.Field<string?>("dtname") == "NEW_USER")
                     .All(r => r.Field<decimal>("iduser") > 0), Is.True);
-            
+
             ConsoleTableBuilder.From(table).ExportAndWriteLine();
         }
     }

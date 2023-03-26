@@ -15,7 +15,7 @@ namespace ADO.NETProg
         /// </summary>
         public const string OracleOdbcConnectionString
             = "Driver={Oracle 12c ODBC driver};Server=10.10.0.3:1521/sqlalchemy.docker.internal;UID=sqlalchemy;PWD=sqlalchemy";
-        
+
         public const string OracleConnectionString
             = "Data Source=10.10.0.3:1521/pdbmgyard.docker.internal;User Id=sqlalchemy;Password=sqlalchemy";
     }
