@@ -4,7 +4,7 @@
 def NamedTupleConverter(row, field):
     return getattr(row, field)
 
-def DictTupleConverter(row, field):
+def DictConverter(row, field):
     return row[field]
 
 def TupleConverter(row, index):
